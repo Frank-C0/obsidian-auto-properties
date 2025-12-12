@@ -1,0 +1,44 @@
+  # .github/workflows/release.yml
+  name: Release Obsidian plugin
+
+  on:
+    push:
+      tags:
+        - "*"
+
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+
+      steps:
+        - uses: actions/checkout@v3
+
+        - name: Use Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: "18.x"
+
+        - name: Install dependencies
+          run: npm install
+
+        - name: Build plugin
+          run: npm run build
+
+        - name: Get plugin name from manifest
+          run: echo "PLUGIN_NAME=$(jq -r '.name' manifest.json)" >> $GITHUB_ENV
+
+        - name: Get tag
+          run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+        - name: Create plugin zip
+          run: zip -r ${{ env.PLUGIN_NAME }}-${{ env.TAG }}.zip main.js manifest.json styles.css
+
+        - name: Create release
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            tag="${GITHUB_REF#refs/tags/}"
+            gh release create "$tag" \
+              --title="$tag" \
+              --draft \
+              main.js manifest.json styles.css ${{ env.PLUGIN_NAME }}-${{ env.TAG }}.zip

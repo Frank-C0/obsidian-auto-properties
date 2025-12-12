@@ -1,94 +1,185 @@
-# Obsidian Sample Plugin
+# Auto Properties
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Automatically add configured frontmatter properties to new notes in Obsidian. Define global properties once and apply them to all new notes, with flexible exclusion rules.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- ✨ **Automatic property addition** - Properties are added when creating or renaming notes
+- 🎯 **Flexible exclusion rules** - Exclude notes by tags or frontmatter properties
+- 🔧 **Multiple property types** - Support for text, multitext, number, checkbox, date, datetime, tags, and aliases
+- 🎨 **Easy management** - Quick settings modal and full settings tab
+- ⚡ **Smart merging** - Merge arrays for compatible property types without duplicates
+- 🚀 **Manual application** - Apply properties on-demand via command palette
+- 💾 **Configurable delay** - Adjust timing for template compatibility
 
-## First time developing plugins?
+## Installation
 
-Quick starting guide for new plugin devs:
+### From Obsidian Community Plugins
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+This plugin is not yet available in the Obsidian community plugins.
 
-## Releasing new releases
+<!-- 1. Open **Settings** → **Community plugins**
+2. Click **Browse** and search for "Auto Properties"
+3. Click **Install** and then **Enable** -->
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Installing using BRAT
 
-## Adding your plugin to the community plugin list
+### Installing the plugin using Obsidian42-BRAT
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+1. Install **Obsidian42-BRAT** from **Settings → Community plugins**.  
+2. Copy the plugin repository URL: https://github.com/Frank-C0/obsidian-auto-properties  
+3. Open the command palette and run **BRAT: Add a beta plugin for testing**.  
+4. Paste the URL into the modal and click **Add Plugin**. Wait for confirmation.  
+5. Go to **Settings → Community plugins**, refresh the list, and enable **Auto Properties**.
 
-## How to use
+Update: Use the command **Check for updates to all beta plugins** or enable automatic updates in the **Obsidian42-BRAT** tab in Settings.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
 
-## Manually installing the plugin
+### Manual Installation
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/Frank-C0/obsidian-auto-properties/releases)
+2. Create a folder named `auto-properties` in your vault's `.obsidian/plugins/` directory
+3. Copy the downloaded files into this folder
+4. Reload Obsidian
+5. Enable the plugin in **Settings** → **Community plugins**
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint ./src/`
+## Usage
 
-## Funding URL
+### Quick Start
 
-You can include funding URLs where people who use your plugin can financially support it.
+1. Click the ribbon icon or use the command palette to open **Auto Properties Settings**
+2. Click **+ Add Property** to create your first global property
+3. Configure:
+   - **Name**: Property key (e.g., `status`, `created`, `tags`)
+   - **Type**: Property type (text, number, date, etc.)
+   - **Value**: Default value to apply
+   - **Enabled**: Toggle to enable/disable
+   - **Overwrite**: Whether to replace existing values
+4. Properties are automatically applied when creating new notes. They can also be applied manually with the _"Apply global properties to current note"_ command.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+### Property Types
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+| Type | Description | Example Value |
+|------|-------------|---------------|
+| **text** | Single line text | `"draft"` |
+| **multitext** | Multiple text values | `"value1, value2"` |
+| **number** | Numeric value | `42` |
+| **checkbox** | Boolean value | `true` or `false` |
+| **date** | Date in YYYY-MM-DD format | `2024-01-15` or `"today"` |
+| **datetime** | Date with time | `2024-01-15` or `"now"` |
+| **tags** | List of tags | `"tag1, tag2"` |
+| **aliases** | List of aliases | `"alias1, alias2"` |
+
+### Exclusion Rules
+
+Prevent auto-properties from being applied to specific notes:
+
+#### By Tag
+Add an exclusion rule with type **Tag** and value:
+- `#template` or `template` - Excludes notes with this tag
+
+#### By Property
+Add an exclusion rule with type **Property** and value:
+- `status:archived` - Excludes notes where `status` equals `archived`
+- `template` - Excludes notes that have a `template` property (any value)
+
+### Commands
+
+- **Open settings modal** - Quick access to property management
+- **Apply global properties to current note** - Manually apply properties to active note
+- **Toggle Auto Properties** - Enable/disable automatic application
+
+### Settings
+
+#### General Settings
+- **Enable Auto Properties** - Turn the plugin on/off
+- **Show notifications** - Display notifications when properties are added
+- **Delay after note creation** - Time to wait before applying (useful for templates)
+
+#### Exclusion Rules
+- Define rules to exclude specific notes from automatic property application
+- Rules can be based on tags or frontmatter properties
+
+#### Global Properties
+- Manage your list of properties to apply
+- Reorder with up/down arrows
+- Toggle individual properties on/off
+- Delete unwanted properties
+
+## Examples
+
+### Example 1: Basic Note Metadata
+
+Configure these properties:
+```yaml
+status: draft       (text)
+author: Your Name   (text)
 ```
 
-If you have multiple URLs, you can also do:
-
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+Every new note will automatically have:
+```yaml
+---
+status: draft
+author: Your Name
+---
 ```
 
-## API Documentation
+### Example 2: Tags and Organization
 
-See https://github.com/obsidianmd/obsidian-api
+Configure:
+```yaml
+tags: note, unprocessed    (tags)
+type: standard             (text)
+priority: 3                (number)
+```
+
+Result:
+```yaml
+---
+tags:
+  - note
+  - unprocessed
+type: standard
+priority: 3
+---
+```
+
+### Example 3: With Exclusions
+
+Setup:
+- Property: `status: draft`
+- Exclusion rule: Tag → `#template`
+
+Notes with `#template` tag won't get auto-properties, but all other notes will.
+
+## Use Cases
+
+- **Project Management**: Add status, priority, and project tags (even after a template is applied)
+- **Zettelkasten**: Add creation date, ID, and knowledge type
+- **Content Creation**: Add author, status, and publication metadata
+- **Templates**: Works seamlessly with template plugins (adjust delay if needed)
+
+## Tips
+
+1. **Template Compatibility**: If properties aren't applying after template insertion, increase the delay in settings (try 300-1000ms)
+2. **Array Merging**: For compatible types (text, multitext, tags, aliases), values are merged without duplicates
+3. **Overwrite Option**: Enable to replace existing property values instead of merging
+4. **Quick Toggle**: Disable a property temporarily without deleting it
+5. **Manual Application**: Use the command to apply properties to existing notes
+
+## Compatibility
+
+- **Obsidian**: Requires v0.15.0 or higher
+- **Mobile**: Fully supported on iOS and Android
+- **Templates**: Compatible with core templates and community template plugins
+- **Other Plugins**: Works alongside other property/frontmatter plugins
+
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
