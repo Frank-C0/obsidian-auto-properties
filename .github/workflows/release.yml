@@ -25,7 +25,7 @@
           run: npm run build
 
         - name: Get plugin name from manifest
-          run: echo "PLUGIN_NAME=$(jq -r '.name' manifest.json)" >> $GITHUB_ENV
+          run: echo "PLUGIN_NAME=$(jq -r '.id' manifest.json)" >> $GITHUB_ENV
 
         - name: Get tag
           run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
