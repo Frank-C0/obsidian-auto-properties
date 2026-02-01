@@ -1,6 +1,13 @@
+// ***************************************************************************************
+// *    Title: obsidian-auto-note-mover (Settings logic)
+// *    Author: farux
+// *    Availability: https://github.com/farux/obsidian-auto-note-mover
+// *    License: MIT
+// ***************************************************************************************
+
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type AutoPropertiesPlugin from './main';
-import type { GlobalProperty, ExclusionRule } from './types';
+import type { GlobalProperty } from './types';
 import { createPropertyHeaders, createPropertyRow } from './property-row';
 
 export class AutoPropertiesSettingTab extends PluginSettingTab {
@@ -98,6 +105,7 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
         this.renderExclusionRulesList(exclusionContainer);
 
         // Add exclusion rule button
+        // UI similar to Auto Note Mover's exclusions
         new Setting(containerEl)
             .addButton(button => button
                 .setButtonText('+ Add Exclusion Rule')

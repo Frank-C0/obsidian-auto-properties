@@ -1,3 +1,17 @@
+// ***************************************************************************************
+// *    This plugin's structure and logic are partially based on:
+// *
+// *    Title: obsidian-auto-note-mover
+// *    Author: farux
+// *    Availability: https://github.com/farux/obsidian-auto-note-mover
+// *    License: MIT
+// *
+// *    Title: obsidian-multi-properties
+// *    Author: technohiker
+// *    Availability: https://github.com/technohiker/obsidian-multi-properties
+// *    License: MIT
+// ***************************************************************************************
+
 import {
     Plugin,
     TFile,
@@ -8,12 +22,13 @@ import {
     Menu,
     EventRef,
 } from 'obsidian';
-import type { Property, PropertyInfos, PropertyTypes } from './types/custom';
-import type { GlobalProperty, PropertyType, AutoPropertiesSettings } from './types';
+import type { PropertyInfos, PropertyTypes } from './types/custom';
+import type { GlobalProperty, AutoPropertiesSettings } from './types';
 import { SettingsModal } from './settings-modal';
 import { AutoPropertiesSettingTab } from './settings-tab';
 import { DEFAULT_SETTINGS } from './constants';
-import { canBeAppended, mergeIntoArrays, processPropertyValue } from './utils';
+import { canBeAppended, mergeIntoArrays } from './frontmatter';
+import { processPropertyValue } from './helpers';
 
 // Extend Obsidian types
 declare module "obsidian" {
@@ -88,6 +103,7 @@ export default class AutoPropertiesPlugin extends Plugin {
             });
 
             // Event: File creation
+            // Logic based on fileCheck in obsidian-auto-note-mover
             this.registerEvent(
                 this.app.vault.on('create', (file) => {
                     this.handleFileEvent(file);
@@ -95,6 +111,7 @@ export default class AutoPropertiesPlugin extends Plugin {
             );
 
             // Event: File rename
+            // Logic based on fileCheck in obsidian-auto-note-mover
             this.registerEvent(
                 this.app.vault.on('rename', (file, oldPath) => {
                     // Only handle renames from templates/untitled
@@ -128,6 +145,10 @@ export default class AutoPropertiesPlugin extends Plugin {
         }, this.settings.delayAfterCreate);
     }
 
+    /**
+     * Checks if a file is excluded based on configuration.
+     * Logic for tag exclusions loosely based on obsidian-auto-note-mover tag checking.
+     */
     private isExcluded(file: TFile, cache: any): boolean {
         if (!cache || this.settings.exclusionRules.length === 0) return false;
 
@@ -183,6 +204,10 @@ export default class AutoPropertiesPlugin extends Plugin {
         return false;
     }
 
+    /**
+     * Applies configured properties to a file.
+     * Logic for merging arrays and overwriting similar to addProperties in obsidian-multi-properties
+     */
     public async applyPropertiesToFile(file: TFile) {
         const cache = this.app.metadataCache.getFileCache(file);
 
@@ -212,7 +237,7 @@ export default class AutoPropertiesPlugin extends Plugin {
                     continue;
                 }
 
-                // Merge arrays if types allow it
+                // Merge arrays if types allow it (using canBeAppended from frontmatter.ts)
                 if (canBeAppended(prop.type, systemType) && processedValue) {
                     if (frontmatter[propName] !== processedValue) {
                         frontmatter[propName] = mergeIntoArrays(frontmatter[propName], processedValue);
@@ -251,5 +276,3 @@ export default class AutoPropertiesPlugin extends Plugin {
         await this.saveSettings();
     }
 }
-
-export type { GlobalProperty, PropertyType, AutoPropertiesSettings };
