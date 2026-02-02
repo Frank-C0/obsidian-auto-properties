@@ -1,44 +1,58 @@
-  # .github/workflows/release.yml
-  name: Release Obsidian plugin
+name: Release Obsidian plugin
 
-  on:
-    push:
-      tags:
-        - "*"
+on:
+  push:
+    tags:
+      - "*"
 
-  jobs:
-    build:
-      runs-on: ubuntu-latest
+permissions:
+  contents: write
 
-      steps:
-        - uses: actions/checkout@v3
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-        - name: Use Node.js
-          uses: actions/setup-node@v3
-          with:
-            node-version: "18.x"
+    steps:
+      - uses: actions/checkout@v3
 
-        - name: Install dependencies
-          run: npm install
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
 
-        - name: Build plugin
-          run: npm run build
+      - name: Install dependencies
+        run: npm install
 
-        - name: Get plugin name from manifest
-          run: echo "PLUGIN_NAME=$(jq -r '.id' manifest.json)" >> $GITHUB_ENV
+      - name: Build plugin
+        run: npm run build
 
-        - name: Get tag
-          run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Get plugin name and version from manifest
+        run: |
+          echo "PLUGIN_ID=$(jq -r '.id' manifest.json)" >> $GITHUB_ENV
+          echo "PLUGIN_VERSION=$(jq -r '.version' manifest.json)" >> $GITHUB_ENV
 
-        - name: Create plugin zip
-          run: zip -r ${{ env.PLUGIN_NAME }}-${{ env.TAG }}.zip main.js manifest.json styles.css
+      - name: Get tag
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-        - name: Create release
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: |
-            tag="${GITHUB_REF#refs/tags/}"
-            gh release create "$tag" \
-              --title="$tag" \
-              --draft \
-              main.js manifest.json styles.css ${{ env.PLUGIN_NAME }}-${{ env.TAG }}.zip
+      - name: Verify version matches tag
+        run: |
+          if [ "${{ env.TAG }}" != "${{ env.PLUGIN_VERSION }}" ]; then
+            echo "Error: Tag version (${{ env.TAG }}) does not match manifest version (${{ env.PLUGIN_VERSION }})"
+            exit 1
+          fi
+
+      - name: Create plugin zip
+        run: |
+          zip -r "${{ env.PLUGIN_ID }}-${{ env.TAG }}.zip" main.js manifest.json styles.css
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title="$tag" \
+            main.js \
+            manifest.json \
+            styles.css \
+            "${{ env.PLUGIN_ID }}-${{ env.TAG }}.zip"
