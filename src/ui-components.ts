@@ -1,6 +1,10 @@
-import { Setting, TextComponent } from 'obsidian';
+// *    Availability: https://github.com/technohiker/obsidian-multi-properties
+// ***************************************************************************************
+
+import { Setting, TextComponent, ToggleComponent, MomentFormatComponent } from 'obsidian';
 import type { GlobalProperty, PropertyType, ExclusionRule } from './types';
 import { PROPERTY_TYPES } from './constants';
+import { cleanTags } from './helpers';
 
 interface PropertyRowCallbacks {
     onEnabledChange: (enabled: boolean) => Promise<void>;
@@ -31,7 +35,92 @@ export function createPropertyRow(
     setting.setClass('property-item');
     setting.infoEl.remove(); // Remove the info element to use full width for controls
 
-    let valueTextComponent: TextComponent | null = null;
+    // Container for the value input (allows swapping controls dynamically)
+    const valueControlContainer = setting.controlEl.createDiv('value-control-container');
+    valueControlContainer.style.flex = '2';
+    valueControlContainer.style.minWidth = '120px';
+    valueControlContainer.style.display = 'flex';
+    valueControlContainer.style.alignItems = 'center';
+
+    // Type select (Moved to be earlier)
+    const typeContainer = setting.controlEl.createDiv('type-control-container');
+    typeContainer.style.flex = '1';
+    typeContainer.style.minWidth = '100px';
+    typeContainer.style.marginRight = '10px';
+
+
+    const renderValueInput = (type: PropertyType, currentValue: any) => {
+        valueControlContainer.empty();
+
+        if (type === 'checkbox') {
+            const toggle = new ToggleComponent(valueControlContainer);
+            toggle.setValue(currentValue === 'true' || currentValue === true);
+            toggle.onChange(async (val) => {
+                await callbacks.onValueChange(String(val));
+            });
+        } else if (type === 'date') {
+            const text = new TextComponent(valueControlContainer);
+            text.inputEl.type = 'date';
+            text.setValue(currentValue?.toString() || '');
+            text.onChange(async (val) => {
+                await callbacks.onValueChange(val);
+            });
+            text.inputEl.style.width = '100%';
+        } else if (type === 'datetime') {
+            const text = new TextComponent(valueControlContainer);
+            text.inputEl.type = 'datetime-local';
+            text.setValue(currentValue?.toString() || '');
+            text.onChange(async (val) => {
+                await callbacks.onValueChange(val);
+            });
+            text.inputEl.style.width = '100%';
+        } else {
+            // Default text/multitext/tags
+            const text = new TextComponent(valueControlContainer);
+            text.setPlaceholder(getPlaceholderForType(type));
+            text.setValue(currentValue?.toString() || '');
+
+            // Validation visual state
+            const updateValidation = (val: string) => {
+                const validation = validatePropertyInput(val, type);
+                updateTextComponentVisuals(text, validation);
+            };
+
+            // Initial validation
+            if ((currentValue?.toString() || '') !== '') {
+                updateValidation(currentValue?.toString() || '');
+            }
+
+            text.onChange(async (val) => {
+                updateValidation(val);
+                await callbacks.onValueChange(val);
+            });
+
+            // Blur behavior (sanitization for tags)
+            text.inputEl.addEventListener('blur', async () => {
+                let val = text.getValue().trim();
+
+                // Sanitize tags/aliases on blur
+                if (type === 'tags' || type === 'aliases') {
+                    if (val) {
+                        const items = val.split(',').map(s => type === 'tags' ? cleanTags(s.trim()) : s.trim()).filter(s => s);
+                        val = items.join(', ');
+                        text.setValue(val);
+                    }
+                }
+
+                if (val !== currentValue?.toString()) {
+                    await callbacks.onValueChange(val);
+                }
+                updateValidation(val);
+            });
+
+            text.inputEl.style.width = '100%';
+        }
+    };
+
+
+
     let currentType = property.type;
 
     // Enabled checkbox
@@ -45,8 +134,40 @@ export function createPropertyRow(
             });
     });
 
+    // Type select (Moved here, before Name)
+    const typeDropdown = new Setting(typeContainer).addDropdown(dropdown => {
+        PROPERTY_TYPES.forEach(type => {
+            dropdown.addOption(type, type);
+        });
+        dropdown
+            .setValue(property.type)
+            .onChange(async (value) => {
+                currentType = value as PropertyType;
+                renderValueInput(currentType, property.value);
+                await callbacks.onTypeChange(value);
+
+                // Auto-set name for special types
+                if (value === 'tags' || value === 'aliases') {
+                    await callbacks.onNameChange(value);
+                    // We need to update the name input value visually as well, but we don't have direct access to the component here easily unless we store it.
+                    // However, we can rely on the re-render or similar mechanism if the parent handles it, 
+                    // or better, let's capture the text component.
+                    if (nameTextComponent) {
+                        nameTextComponent.setValue(value);
+                    }
+                }
+            });
+        dropdown.selectEl.style.width = '100%';
+    });
+    // Remove the default info/setting-item classes/styles that Setting adds to make it fit inside our div
+    typeDropdown.settingEl.style.border = 'none';
+    typeDropdown.settingEl.style.padding = '0';
+    typeDropdown.infoEl.remove();
+
     // Name input
+    let nameTextComponent: TextComponent;
     setting.addText(text => {
+        nameTextComponent = text;
         text
             .setPlaceholder('Property name')
             .setValue(property.name)
@@ -77,65 +198,10 @@ export function createPropertyRow(
         text.inputEl.style.minWidth = '120px';
     });
 
-    // Type select
-    setting.addDropdown(dropdown => {
-        PROPERTY_TYPES.forEach(type => {
-            dropdown.addOption(type, type);
-        });
-        dropdown
-            .setValue(property.type)
-            .onChange(async (value) => {
-                currentType = value as PropertyType;
 
-                // Update value placeholder and re-validate
-                if (valueTextComponent) {
-                    valueTextComponent.setPlaceholder(getPlaceholderForType(currentType));
 
-                    const validation = validatePropertyInput(valueTextComponent.getValue(), currentType);
-                    updateTextComponentVisuals(valueTextComponent, validation);
-                }
-
-                await callbacks.onTypeChange(value);
-            });
-        dropdown.selectEl.style.flex = '1';
-        dropdown.selectEl.style.minWidth = '100px';
-    });
-
-    // Value input
-    setting.addText(text => {
-        valueTextComponent = text;
-
-        // Initial validation visual state
-        const initialVal = validatePropertyInput(property.value?.toString() || '', currentType);
-        if (!initialVal.isValid && (property.value?.toString() || '') !== '') {
-            // Only show error initially if there is a value
-            updateTextComponentVisuals(text, initialVal);
-        }
-
-        text
-            .setPlaceholder(getPlaceholderForType(property.type))
-            .setValue(property.value?.toString() || '')
-            .onChange(async (value) => {
-                const validation = validatePropertyInput(value, currentType);
-                updateTextComponentVisuals(text, validation);
-                await callbacks.onValueChange(value.trim());
-            });
-
-        // Restore blur behavior
-        text.inputEl.addEventListener('blur', async () => {
-            const trimmed = text.getValue().trim();
-            if (trimmed !== property.value?.toString()) {
-                text.setValue(trimmed);
-                await callbacks.onValueChange(trimmed);
-            }
-            // Re-validate on blur just to be safe
-            const validation = validatePropertyInput(trimmed, currentType);
-            updateTextComponentVisuals(text, validation);
-        });
-
-        text.inputEl.style.flex = '2';
-        text.inputEl.style.minWidth = '120px';
-    });
+    // Initial render of value input
+    renderValueInput(currentType, property.value);
 
     // Overwrite checkbox
     setting.addToggle(toggle => {
@@ -374,13 +440,13 @@ export function createPropertyHeaders(container: HTMLElement): void {
     enabledHeader.style.textAlign = 'center';
     enabledHeader.title = 'Enabled';
 
-    const nameHeader = headersDiv.createEl('span', { text: 'Name' });
-    nameHeader.style.flex = '2';
-    nameHeader.style.minWidth = '120px';
-
     const typeHeader = headersDiv.createEl('span', { text: 'Type' });
     typeHeader.style.flex = '1';
     typeHeader.style.minWidth = '100px';
+
+    const nameHeader = headersDiv.createEl('span', { text: 'Name' });
+    nameHeader.style.flex = '2';
+    nameHeader.style.minWidth = '120px';
 
     const valueHeader = headersDiv.createEl('span', { text: 'Value' });
     valueHeader.style.flex = '2';

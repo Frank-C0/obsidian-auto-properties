@@ -44,7 +44,10 @@ export function processPropertyValue(value: any, type: PropertyType): any {
             if (Array.isArray(value)) {
                 return value.map(v => String(v));
             }
-            return [String(value)];
+            const multiTextValue = String(value).trim();
+            if (!multiTextValue) return [];
+
+            return multiTextValue.split(',').map(v => v.trim()).filter(v => v);
 
         case 'number':
             const num = Number(value);

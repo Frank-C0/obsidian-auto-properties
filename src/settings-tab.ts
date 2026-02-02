@@ -1,7 +1,11 @@
-// ***************************************************************************************
 // *    Title: obsidian-auto-note-mover (Settings logic)
 // *    Author: farux
 // *    Availability: https://github.com/farux/obsidian-auto-note-mover
+// *    License: MIT
+// *    
+// *    Title: obsidian-multi-properties (Property types and parsing logic)
+// *    Author: technohiker (fez-github)
+// *    Availability: https://github.com/technohiker/obsidian-multi-properties
 // *    License: MIT
 // ***************************************************************************************
 
@@ -69,6 +73,23 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
         containerEl.createEl('h3', { text: 'Global Properties' });
 
         // Property headers
+        // Property headers
+        containerEl.createEl('div', {
+            text: 'Type in a property name, then value. Use the dropdown to choose what type of data you wish to store.',
+            cls: 'setting-item-description',
+            attr: { style: 'margin-bottom: 5px;' }
+        });
+        containerEl.createEl('div', {
+            text: 'If you want to make a List property, use the Text data type and separate each value with a comma.',
+            cls: 'setting-item-description',
+            attr: { style: 'margin-bottom: 5px;' }
+        });
+        containerEl.createEl('div', {
+            text: 'If you want to add Tags, use the name "tags".',
+            cls: 'setting-item-description',
+            attr: { style: 'margin-bottom: 15px;' }
+        });
+
         createPropertyHeaders(containerEl);
 
         // Properties list

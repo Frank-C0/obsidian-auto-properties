@@ -1,6 +1,7 @@
-import { Setting } from 'obsidian';
+import { Setting, TextComponent, ToggleComponent } from 'obsidian';
 import type { GlobalProperty, PropertyType } from './types';
 import { PROPERTY_TYPES } from './constants';
+import { cleanTags } from './helpers';
 
 interface PropertyRowCallbacks {
     onEnabledChange: (enabled: boolean) => Promise<void>;
@@ -31,6 +32,8 @@ export function createPropertyRow(
     setting.setClass('property-item');
     setting.infoEl.remove(); // Remove the info element to use full width for controls
 
+    let currentType = property.type;
+
     // Enabled checkbox
     setting.addToggle(toggle => {
         toggle
@@ -49,11 +52,6 @@ export function createPropertyRow(
             .setValue(property.name)
             .onChange(async (value) => {
                 const trimmed = value.trim();
-                // Value is obtained from onChange but we might want to trim on blur or debounce
-                // Standard text component onChange fires on every keystroke. 
-                // We'll mimic the original behavior by updating on change but maybe we should use blur? 
-                // The original used blur. TextComponent doesn't have explicit onBlur in the builder chain easily 
-                // but we can access inputEl.
                 if (trimmed !== property.name) {
                     await callbacks.onNameChange(trimmed);
                 }
@@ -77,6 +75,70 @@ export function createPropertyRow(
         text.inputEl.style.minWidth = '120px';
     });
 
+    // Container for the value input (allows swapping controls dynamically)
+    const valueControlContainer = setting.controlEl.createDiv('value-control-container');
+    valueControlContainer.style.flex = '2';
+    valueControlContainer.style.minWidth = '120px';
+    valueControlContainer.style.display = 'flex';
+    valueControlContainer.style.alignItems = 'center';
+
+    const renderValueInput = (type: PropertyType, currentValue: any) => {
+        valueControlContainer.empty();
+
+        if (type === 'checkbox') {
+            const toggle = new ToggleComponent(valueControlContainer);
+            toggle.setValue(currentValue === 'true' || currentValue === true);
+            toggle.onChange(async (val) => {
+                await callbacks.onValueChange(String(val));
+            });
+        } else if (type === 'date') {
+            const text = new TextComponent(valueControlContainer);
+            text.inputEl.type = 'date';
+            text.setValue(currentValue?.toString() || '');
+            text.onChange(async (val) => {
+                await callbacks.onValueChange(val);
+            });
+            text.inputEl.style.width = '100%';
+        } else if (type === 'datetime') {
+            const text = new TextComponent(valueControlContainer);
+            text.inputEl.type = 'datetime-local';
+            text.setValue(currentValue?.toString() || '');
+            text.onChange(async (val) => {
+                await callbacks.onValueChange(val);
+            });
+            text.inputEl.style.width = '100%';
+        } else {
+            // Default text/multitext/tags
+            const text = new TextComponent(valueControlContainer);
+            text.setPlaceholder(getPlaceholderForType(type));
+            text.setValue(currentValue?.toString() || '');
+
+            text.onChange(async (val) => {
+                await callbacks.onValueChange(val);
+            });
+
+            // Blur behavior (sanitization for tags)
+            text.inputEl.addEventListener('blur', async () => {
+                let val = text.getValue().trim();
+
+                // Sanitize tags/aliases on blur
+                if (type === 'tags' || type === 'aliases') {
+                    if (val) {
+                        const items = val.split(',').map(s => type === 'tags' ? cleanTags(s.trim()) : s.trim()).filter(s => s);
+                        val = items.join(', ');
+                        text.setValue(val);
+                    }
+                }
+
+                if (val !== currentValue?.toString()) {
+                    await callbacks.onValueChange(val);
+                }
+            });
+
+            text.inputEl.style.width = '100%';
+        }
+    };
+
     // Type select
     setting.addDropdown(dropdown => {
         PROPERTY_TYPES.forEach(type => {
@@ -85,40 +147,18 @@ export function createPropertyRow(
         dropdown
             .setValue(property.type)
             .onChange(async (value) => {
+                currentType = value as PropertyType;
+                renderValueInput(currentType, property.value);
                 await callbacks.onTypeChange(value);
             });
         dropdown.selectEl.style.flex = '1';
         dropdown.selectEl.style.minWidth = '100px';
     });
 
-    // Value input
-    setting.addText(text => {
-        text
-            .setPlaceholder(getPlaceholderForType(property.type))
-            .setValue(property.value?.toString() || '')
-            .onChange(async (value) => {
-                // Update on change
-                await callbacks.onValueChange(value.trim());
-            });
-
-        // Restore blur behavior
-        text.inputEl.addEventListener('blur', async () => {
-            const trimmed = text.getValue().trim();
-            if (trimmed !== property.value?.toString()) {
-                text.setValue(trimmed);
-                await callbacks.onValueChange(trimmed);
-            }
-        });
-
-        text.inputEl.style.flex = '2';
-        text.inputEl.style.minWidth = '120px';
-    });
+    // Render initial value input
+    renderValueInput(currentType, property.value);
 
     // Overwrite checkbox
-    // TextComponent and Dropdown handle layout fine, but Toggle inside a control div works differently. 
-    // Setting.addToggle appends a toggle switch. The original used a checkbox.
-    // Obsidian's Toggle is a switch. If we want a checkbox we might need styles or use Toggle (which is standard).
-    // The previous code had a 'width: 20px' alignment for this.
     setting.addToggle(toggle => {
         toggle
             .setValue(property.overwrite)
@@ -126,12 +166,9 @@ export function createPropertyRow(
             .onChange(async (value) => {
                 await callbacks.onOverwriteChange(value);
             });
-        // Toggles are wider than checkboxes.
-        // We might want to just keep it as is, standard toggle is fine.
     });
 
     // Actions
-    // We add them as ExtraButtons
     setting.addExtraButton(button => {
         button
             .setIcon('up-chevron-glyph')
@@ -201,7 +238,7 @@ function getPlaceholderForType(type: PropertyType): string {
 }
 
 /**
- * Crea los encabezados de columna para la lista de propiedades
+ * Creates the headers (kept since they were in property-row.ts previously)
  */
 export function createPropertyHeaders(container: HTMLElement): void {
     const headersDiv = container.createDiv('properties-headers');
@@ -218,7 +255,6 @@ export function createPropertyHeaders(container: HTMLElement): void {
     const enabledHeader = headersDiv.createEl('span', { text: '✓' });
     enabledHeader.style.width = '42px';
     enabledHeader.style.textAlign = 'center';
-    enabledHeader.title = 'Enabled';
 
     const nameHeader = headersDiv.createEl('span', { text: 'Name' });
     nameHeader.style.flex = '2';
@@ -235,7 +271,6 @@ export function createPropertyHeaders(container: HTMLElement): void {
     const overwriteHeader = headersDiv.createEl('span', { text: '⚠' });
     overwriteHeader.style.width = '42px';
     overwriteHeader.style.textAlign = 'center';
-    overwriteHeader.title = 'Overwrite';
 
     const actionsHeader = headersDiv.createEl('span', { text: 'Actions' });
     actionsHeader.style.minWidth = '100px';

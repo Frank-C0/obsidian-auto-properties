@@ -60,6 +60,12 @@ export class SettingsModal extends Modal {
         contentEl.createEl('h3', { text: 'Quick Property Management' });
 
         // Property headers
+        // Property headers
+        contentEl.createEl('div', {
+            text: 'Type in a property name, then value. Use the dropdown to choose what type of data you wish to store.',
+            cls: 'setting-item-description',
+            attr: { style: 'margin-bottom: 5px;' }
+        });
         createPropertyHeaders(contentEl);
 
         // Properties list
