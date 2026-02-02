@@ -1,7 +1,7 @@
 import { App, Modal, Setting, Notice } from 'obsidian';
 import type AutoPropertiesPlugin from './main';
 import type { GlobalProperty } from './types';
-import { createPropertyHeaders, createPropertyRow } from './property-row';
+import { createPropertyHeaders, createPropertyRow } from './ui-components';
 
 export class SettingsModal extends Modal {
     plugin: AutoPropertiesPlugin;
@@ -14,6 +14,10 @@ export class SettingsModal extends Modal {
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
+
+        if (contentEl.parentElement) {
+            contentEl.parentElement.style.width = 'auto';
+        }
 
         this.setTitle('Auto Properties - Quick Settings');
 
@@ -28,48 +32,6 @@ export class SettingsModal extends Modal {
                     await this.plugin.saveSettings();
                     new Notice(`Auto Properties ${value ? 'enabled' : 'disabled'}`);
                 }));
-
-        // Show notifications toggle
-        new Setting(contentEl)
-            .setName('Show notifications')
-            .setDesc('Show a notification when properties are added to a note')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.showNotifications)
-                .onChange(async (value) => {
-                    this.plugin.settings.showNotifications = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        contentEl.createEl('h3', { text: 'Quick Property Management' });
-
-        // Property headers
-        createPropertyHeaders(contentEl);
-
-        // Properties list
-        const propertiesContainer = contentEl.createDiv('properties-list');
-        propertiesContainer.style.maxHeight = '400px';
-        propertiesContainer.style.overflowY = 'auto';
-        this.renderPropertiesList(propertiesContainer);
-
-        // Add property button
-        new Setting(contentEl)
-            .addButton(button => button
-                .setButtonText('+ Add Property')
-                .setCta()
-                .onClick(() => {
-                    const newProperty: GlobalProperty = {
-                        name: '',
-                        value: '',
-                        type: 'text',
-                        enabled: true,
-                        overwrite: false
-                    };
-                    this.plugin.addProperty(newProperty);
-                    this.renderPropertiesList(propertiesContainer);
-                }));
-
-        // Separator
-        contentEl.createDiv('setting-item-separator');
 
         // Apply properties button
         new Setting(contentEl)
@@ -94,6 +56,38 @@ export class SettingsModal extends Modal {
                     }
                     await this.plugin.applyPropertiesToFile(file);
                 }));
+
+        contentEl.createEl('h3', { text: 'Quick Property Management' });
+
+        // Property headers
+        createPropertyHeaders(contentEl);
+
+        // Properties list
+        const propertiesContainer = contentEl.createDiv('properties-list');
+        propertiesContainer.style.maxHeight = 'auto';
+        propertiesContainer.style.overflowY = 'auto';
+        this.renderPropertiesList(propertiesContainer);
+
+        // Add property button
+        new Setting(contentEl)
+            .addButton(button => button
+                .setButtonText('+ Add Property')
+                .setCta()
+                .onClick(() => {
+                    const newProperty: GlobalProperty = {
+                        name: '',
+                        value: '',
+                        type: 'text',
+                        enabled: true,
+                        overwrite: false
+                    };
+                    this.plugin.addProperty(newProperty);
+                    this.renderPropertiesList(propertiesContainer);
+                }));
+
+        // Separator
+        contentEl.createDiv('setting-item-separator');
+
     }
 
     private renderPropertiesList(container: HTMLElement) {

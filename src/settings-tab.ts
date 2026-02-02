@@ -8,7 +8,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type AutoPropertiesPlugin from './main';
 import type { GlobalProperty } from './types';
-import { createPropertyHeaders, createPropertyRow } from './property-row';
+import { createPropertyHeaders, createPropertyRow, createExclusionHeaders, createExclusionRow } from './ui-components';
 
 export class AutoPropertiesSettingTab extends PluginSettingTab {
     plugin: AutoPropertiesPlugin;
@@ -59,8 +59,10 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
                         this.plugin.settings.delayAfterCreate = num;
                         await this.plugin.saveSettings();
                         text.inputEl.style.borderColor = '';
+                        text.inputEl.title = '';
                     } else {
                         text.inputEl.style.borderColor = 'var(--text-error)';
+                        text.inputEl.title = 'Must be between 0 and 5000ms';
                     }
                 }));
 
@@ -99,13 +101,15 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
             '<strong>Tag:</strong> #example or example<br>' +
             '<strong>Property:</strong> key:value (checks specific value) or key (checks existence)';
 
+        // Exclusion headers
+        createExclusionHeaders(containerEl);
+
         // Exclusion rules list
         const exclusionContainer = containerEl.createDiv('exclusion-rules-container');
         exclusionContainer.style.marginBottom = '20px';
         this.renderExclusionRulesList(exclusionContainer);
 
         // Add exclusion rule button
-        // UI similar to Auto Note Mover's exclusions
         new Setting(containerEl)
             .addButton(button => button
                 .setButtonText('+ Add Exclusion Rule')
@@ -185,34 +189,20 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
         }
 
         this.plugin.settings.exclusionRules.forEach((rule, index) => {
-            const ruleSetting = new Setting(container)
-                .addDropdown(dropdown => dropdown
-                    .addOption('tag', 'Tag')
-                    .addOption('property', 'Property')
-                    .setValue(rule.type)
-                    .onChange(async (value: 'tag' | 'property') => {
+            createExclusionRow(
+                container,
+                rule,
+                {
+                    onTypeChange: async (value) => {
                         this.plugin.settings.exclusionRules[index].type = value;
                         await this.plugin.saveSettings();
                         this.renderExclusionRulesList(container);
-                    }))
-                .addText(text => {
-                    const placeholder = rule.type === 'tag' ? '#example or example' : 'key:value or key';
-                    text.setPlaceholder(placeholder)
-                        .setValue(rule.value)
-                        .onChange(async (value) => {
-                            this.plugin.settings.exclusionRules[index].value = value.trim();
-                            await this.plugin.saveSettings();
-                            if (!value.trim()) {
-                                text.inputEl.style.borderColor = 'var(--text-error)';
-                            } else {
-                                text.inputEl.style.borderColor = '';
-                            }
-                        });
-                })
-                .addExtraButton(button => button
-                    .setIcon('up-chevron-glyph')
-                    .setTooltip('Move up')
-                    .onClick(async () => {
+                    },
+                    onValueChange: async (value) => {
+                        this.plugin.settings.exclusionRules[index].value = value;
+                        await this.plugin.saveSettings();
+                    },
+                    onMoveUp: async () => {
                         if (index > 0) {
                             const temp = this.plugin.settings.exclusionRules[index];
                             this.plugin.settings.exclusionRules[index] = this.plugin.settings.exclusionRules[index - 1];
@@ -220,11 +210,8 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                             this.renderExclusionRulesList(container);
                         }
-                    }))
-                .addExtraButton(button => button
-                    .setIcon('down-chevron-glyph')
-                    .setTooltip('Move down')
-                    .onClick(async () => {
+                    },
+                    onMoveDown: async () => {
                         if (index < this.plugin.settings.exclusionRules.length - 1) {
                             const temp = this.plugin.settings.exclusionRules[index];
                             this.plugin.settings.exclusionRules[index] = this.plugin.settings.exclusionRules[index + 1];
@@ -232,17 +219,18 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                             this.renderExclusionRulesList(container);
                         }
-                    }))
-                .addExtraButton(button => button
-                    .setIcon('cross')
-                    .setTooltip('Delete')
-                    .onClick(async () => {
+                    },
+                    onDelete: async () => {
                         this.plugin.settings.exclusionRules.splice(index, 1);
                         await this.plugin.saveSettings();
                         this.renderExclusionRulesList(container);
-                    }));
-
-            ruleSetting.infoEl.remove();
+                    }
+                },
+                {
+                    canMoveUp: index > 0,
+                    canMoveDown: index < this.plugin.settings.exclusionRules.length - 1
+                }
+            );
         });
     }
 }

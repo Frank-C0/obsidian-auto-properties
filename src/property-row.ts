@@ -27,157 +27,149 @@ export function createPropertyRow(
     callbacks: PropertyRowCallbacks,
     options: PropertyRowOptions
 ): void {
-    const propertyEl = container.createDiv('property-item');
-    propertyEl.style.display = 'flex';
-    propertyEl.style.alignItems = 'center';
-    propertyEl.style.gap = '8px';
-    propertyEl.style.marginBottom = '10px';
-    propertyEl.style.padding = '10px';
-    propertyEl.style.border = '1px solid var(--background-modifier-border)';
-    propertyEl.style.borderRadius = '5px';
-    propertyEl.style.backgroundColor = 'var(--background-primary)';
+    const setting = new Setting(container);
+    setting.setClass('property-item');
+    setting.infoEl.remove(); // Remove the info element to use full width for controls
 
     // Enabled checkbox
-    const enabledToggle = createEl('input', { type: 'checkbox' });
-    enabledToggle.checked = property.enabled;
-    enabledToggle.title = 'Enable/Disable';
-    enabledToggle.style.cursor = 'pointer';
-    enabledToggle.addEventListener('change', async () => {
-        await callbacks.onEnabledChange(enabledToggle.checked);
-        updateRowVisualState(propertyEl, enabledToggle.checked);
+    setting.addToggle(toggle => {
+        toggle
+            .setValue(property.enabled)
+            .setTooltip('Enable/Disable')
+            .onChange(async (value) => {
+                await callbacks.onEnabledChange(value);
+                updateRowVisualState(setting.settingEl, value);
+            });
     });
 
     // Name input
-    const nameInput = createEl('input', {
-        type: 'text',
-        placeholder: 'Property name',
-        cls: 'modal-input'
-    });
-    nameInput.value = property.name;
-    nameInput.style.flex = '2';
-    nameInput.style.minWidth = '120px';
-    nameInput.addEventListener('blur', async () => {
-        const trimmed = nameInput.value.trim();
-        if (trimmed !== property.name) {
-            nameInput.value = trimmed;
-            await callbacks.onNameChange(trimmed);
-        }
-        if (!trimmed) {
-            nameInput.style.borderColor = 'var(--text-error)';
-        } else {
-            nameInput.style.borderColor = '';
-        }
+    setting.addText(text => {
+        text
+            .setPlaceholder('Property name')
+            .setValue(property.name)
+            .onChange(async (value) => {
+                const trimmed = value.trim();
+                // Value is obtained from onChange but we might want to trim on blur or debounce
+                // Standard text component onChange fires on every keystroke. 
+                // We'll mimic the original behavior by updating on change but maybe we should use blur? 
+                // The original used blur. TextComponent doesn't have explicit onBlur in the builder chain easily 
+                // but we can access inputEl.
+                if (trimmed !== property.name) {
+                    await callbacks.onNameChange(trimmed);
+                }
+            });
+
+        // Restore blur behavior and styling
+        text.inputEl.addEventListener('blur', async () => {
+            const trimmed = text.getValue().trim();
+            if (trimmed !== property.name) {
+                text.setValue(trimmed); // Update UI
+                await callbacks.onNameChange(trimmed);
+            }
+            if (!trimmed) {
+                text.inputEl.style.borderColor = 'var(--text-error)';
+            } else {
+                text.inputEl.style.borderColor = '';
+            }
+        });
+
+        text.inputEl.style.flex = '2';
+        text.inputEl.style.minWidth = '120px';
     });
 
     // Type select
-    const typeSelect = createEl('select', { cls: 'dropdown' });
-    PROPERTY_TYPES.forEach(type => {
-        const option = createEl('option', { value: type, text: type });
-        typeSelect.appendChild(option);
-    });
-    typeSelect.value = property.type;
-    typeSelect.style.flex = '1';
-    typeSelect.style.minWidth = '100px';
-    typeSelect.addEventListener('change', async () => {
-        await callbacks.onTypeChange(typeSelect.value);
+    setting.addDropdown(dropdown => {
+        PROPERTY_TYPES.forEach(type => {
+            dropdown.addOption(type, type);
+        });
+        dropdown
+            .setValue(property.type)
+            .onChange(async (value) => {
+                await callbacks.onTypeChange(value);
+            });
+        dropdown.selectEl.style.flex = '1';
+        dropdown.selectEl.style.minWidth = '100px';
     });
 
     // Value input
-    const valueInput = createEl('input', {
-        type: 'text',
-        placeholder: getPlaceholderForType(property.type),
-        cls: 'modal-input'
-    });
-    valueInput.value = property.value?.toString() || '';
-    valueInput.style.flex = '2';
-    valueInput.style.minWidth = '120px';
-    valueInput.addEventListener('blur', async () => {
-        const trimmed = valueInput.value.trim();
-        if (trimmed !== property.value?.toString()) {
-            valueInput.value = trimmed;
-            await callbacks.onValueChange(trimmed);
-        }
+    setting.addText(text => {
+        text
+            .setPlaceholder(getPlaceholderForType(property.type))
+            .setValue(property.value?.toString() || '')
+            .onChange(async (value) => {
+                // Update on change
+                await callbacks.onValueChange(value.trim());
+            });
+
+        // Restore blur behavior
+        text.inputEl.addEventListener('blur', async () => {
+            const trimmed = text.getValue().trim();
+            if (trimmed !== property.value?.toString()) {
+                text.setValue(trimmed);
+                await callbacks.onValueChange(trimmed);
+            }
+        });
+
+        text.inputEl.style.flex = '2';
+        text.inputEl.style.minWidth = '120px';
     });
 
     // Overwrite checkbox
-    const overwriteToggle = createEl('input', { type: 'checkbox' });
-    overwriteToggle.checked = property.overwrite;
-    overwriteToggle.title = 'Overwrite if exists';
-    overwriteToggle.style.cursor = 'pointer';
-    overwriteToggle.addEventListener('change', async () => {
-        await callbacks.onOverwriteChange(overwriteToggle.checked);
+    // TextComponent and Dropdown handle layout fine, but Toggle inside a control div works differently. 
+    // Setting.addToggle appends a toggle switch. The original used a checkbox.
+    // Obsidian's Toggle is a switch. If we want a checkbox we might need styles or use Toggle (which is standard).
+    // The previous code had a 'width: 20px' alignment for this.
+    setting.addToggle(toggle => {
+        toggle
+            .setValue(property.overwrite)
+            .setTooltip('Overwrite if exists')
+            .onChange(async (value) => {
+                await callbacks.onOverwriteChange(value);
+            });
+        // Toggles are wider than checkboxes.
+        // We might want to just keep it as is, standard toggle is fine.
     });
 
-    // Actions container
-    const actionsDiv = createEl('div');
-    actionsDiv.style.display = 'flex';
-    actionsDiv.style.gap = '4px';
-    actionsDiv.style.alignItems = 'center';
-    actionsDiv.style.minWidth = '100px';
-
-    // Move up button
-    const upButton = createEl('button', {
-        text: '↑',
-        cls: 'clickable-icon'
-    });
-    upButton.title = 'Move up';
-    upButton.style.padding = '4px 8px';
-    upButton.disabled = !options.canMoveUp;
-    if (!options.canMoveUp) {
-        upButton.style.opacity = '0.3';
-        upButton.style.cursor = 'not-allowed';
-    }
-    upButton.addEventListener('click', async () => {
-        if (options.canMoveUp) {
-            await callbacks.onMoveUp();
-        }
+    // Actions
+    // We add them as ExtraButtons
+    setting.addExtraButton(button => {
+        button
+            .setIcon('up-chevron-glyph')
+            .setTooltip('Move up')
+            .setDisabled(!options.canMoveUp)
+            .onClick(async () => {
+                if (options.canMoveUp) {
+                    await callbacks.onMoveUp();
+                }
+            });
+        if (!options.canMoveUp) button.extraSettingsEl.style.opacity = '0.5';
     });
 
-    // Move down button
-    const downButton = createEl('button', {
-        text: '↓',
-        cls: 'clickable-icon'
-    });
-    downButton.title = 'Move down';
-    downButton.style.padding = '4px 8px';
-    downButton.disabled = !options.canMoveDown;
-    if (!options.canMoveDown) {
-        downButton.style.opacity = '0.3';
-        downButton.style.cursor = 'not-allowed';
-    }
-    downButton.addEventListener('click', async () => {
-        if (options.canMoveDown) {
-            await callbacks.onMoveDown();
-        }
+    setting.addExtraButton(button => {
+        button
+            .setIcon('down-chevron-glyph')
+            .setTooltip('Move down')
+            .setDisabled(!options.canMoveDown)
+            .onClick(async () => {
+                if (options.canMoveDown) {
+                    await callbacks.onMoveDown();
+                }
+            });
+        if (!options.canMoveDown) button.extraSettingsEl.style.opacity = '0.5';
     });
 
-    // Delete button
-    const deleteButton = createEl('button', {
-        text: '×',
-        cls: 'clickable-icon'
+    setting.addExtraButton(button => {
+        button
+            .setIcon('cross')
+            .setTooltip('Delete')
+            .onClick(async () => {
+                await callbacks.onDelete();
+            });
+        button.extraSettingsEl.style.color = 'var(--text-error)';
     });
-    deleteButton.title = 'Delete';
-    deleteButton.style.padding = '4px 8px';
-    deleteButton.style.color = 'var(--text-error)';
-    deleteButton.style.fontWeight = 'bold';
-    deleteButton.addEventListener('click', async () => {
-        await callbacks.onDelete();
-    });
-
-    // Append all elements
-    actionsDiv.appendChild(upButton);
-    actionsDiv.appendChild(downButton);
-    actionsDiv.appendChild(deleteButton);
-
-    propertyEl.appendChild(enabledToggle);
-    propertyEl.appendChild(nameInput);
-    propertyEl.appendChild(typeSelect);
-    propertyEl.appendChild(valueInput);
-    propertyEl.appendChild(overwriteToggle);
-    propertyEl.appendChild(actionsDiv);
 
     // Apply initial visual state
-    updateRowVisualState(propertyEl, property.enabled);
+    updateRowVisualState(setting.settingEl, property.enabled);
 }
 
 /**
@@ -224,7 +216,7 @@ export function createPropertyHeaders(container: HTMLElement): void {
     headersDiv.style.color = 'var(--text-muted)';
 
     const enabledHeader = headersDiv.createEl('span', { text: '✓' });
-    enabledHeader.style.width = '20px';
+    enabledHeader.style.width = '42px';
     enabledHeader.style.textAlign = 'center';
     enabledHeader.title = 'Enabled';
 
@@ -241,7 +233,7 @@ export function createPropertyHeaders(container: HTMLElement): void {
     valueHeader.style.minWidth = '120px';
 
     const overwriteHeader = headersDiv.createEl('span', { text: '⚠' });
-    overwriteHeader.style.width = '20px';
+    overwriteHeader.style.width = '42px';
     overwriteHeader.style.textAlign = 'center';
     overwriteHeader.title = 'Overwrite';
 
