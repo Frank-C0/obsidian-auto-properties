@@ -79,17 +79,12 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
         containerEl.createEl('h3', { text: 'Global Properties' });
 
         containerEl.createEl('div', {
-            text: 'Type in a property name, then value. Use the dropdown to choose what type of data you wish to store.',
+            text: 'Properties like tags, aliases, and multi-text are merged across configurations (e.g., "tags: tag1, tag2" and "tags: tag2, tag3" results in "tags: tag1, tag2, tag3").',
             cls: 'setting-item-description',
             attr: { style: 'margin-bottom: 5px;' }
         });
         containerEl.createEl('div', {
-            text: 'If you want to make a List property, use the Text data type and separate each value with a comma.',
-            cls: 'setting-item-description',
-            attr: { style: 'margin-bottom: 5px;' }
-        });
-        containerEl.createEl('div', {
-            text: 'If you want to add Tags, use the name "tags".',
+            text: 'If multiple overrides exist for the same property, the last one in the list takes precedence.',
             cls: 'setting-item-description',
             attr: { style: 'margin-bottom: 15px;' }
         });

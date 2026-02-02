@@ -44,6 +44,62 @@ Update: Use the command **Check for updates to all beta plugins** or enable auto
 4. Reload Obsidian
 5. Enable the plugin in **Settings** → **Community plugins**
 
+## Examples
+
+### Example 1: Basic Note Metadata
+
+Configure these properties:
+```yaml
+status: draft       (text)
+author: Your Name   (text)
+```
+
+Every new note will automatically have:
+```yaml
+---
+status: draft
+author: Your Name
+---
+```
+
+### Example 2: Tags and Organization
+
+Configure:
+```yaml
+tags: note, unprocessed    (tags)
+tags: project_1            tags)
+tags: subproject_1         (tags)
+topics: topic_A            (multitext)
+topics: topic_B            (multitext)
+type: standard             (text)
+priority: 3                (number)
+```
+
+Result:
+```yaml
+---
+tags:
+  - note
+  - unprocessed
+  - project_1
+  - subproject_1
+topics:
+  - topic_A
+  - topic_B
+type: standard
+priority: 3
+---
+```
+
+## Use Cases
+
+- **Project Management**: Add status, priority, and project tags (even after a template is applied)
+- **Zettelkasten**: Add creation date, ID, and knowledge type
+- **Content Creation**: Add author, status, and publication metadata
+- **Templates**: Works seamlessly with template plugins (adjust delay if needed)
+
+
+
 ## Usage
 
 ### Quick Start
@@ -75,6 +131,11 @@ Update: Use the command **Check for updates to all beta plugins** or enable auto
 
 Prevent auto-properties from being applied to specific notes:
 
+#### By folder
+Add an exclusion rule with a route of a **Folder**:
+- `templates` - Excludes notes in the `templates` folder
+- `daily` - Excludes notes in the `daily` folder
+
 #### By Tag
 Add an exclusion rule with type **Tag** and value:
 - `#template` or `template` - Excludes notes with this tag
@@ -90,75 +151,6 @@ Add an exclusion rule with type **Property** and value:
 - **Apply global properties to current note** - Manually apply properties to active note
 - **Toggle Auto Properties** - Enable/disable automatic application
 
-### Settings
-
-#### General Settings
-- **Enable Auto Properties** - Turn the plugin on/off
-- **Show notifications** - Display notifications when properties are added
-- **Delay after note creation** - Time to wait before applying (useful for templates)
-
-#### Exclusion Rules
-- Define rules to exclude specific notes from automatic property application
-- Rules can be based on tags or frontmatter properties
-
-#### Global Properties
-- Manage your list of properties to apply
-- Reorder with up/down arrows
-- Toggle individual properties on/off
-- Delete unwanted properties
-
-## Examples
-
-### Example 1: Basic Note Metadata
-
-Configure these properties:
-```yaml
-status: draft       (text)
-author: Your Name   (text)
-```
-
-Every new note will automatically have:
-```yaml
----
-status: draft
-author: Your Name
----
-```
-
-### Example 2: Tags and Organization
-
-Configure:
-```yaml
-tags: note, unprocessed    (tags)
-type: standard             (text)
-priority: 3                (number)
-```
-
-Result:
-```yaml
----
-tags:
-  - note
-  - unprocessed
-type: standard
-priority: 3
----
-```
-
-### Example 3: With Exclusions
-
-Setup:
-- Property: `status: draft`
-- Exclusion rule: Tag → `#template`
-
-Notes with `#template` tag won't get auto-properties, but all other notes will.
-
-## Use Cases
-
-- **Project Management**: Add status, priority, and project tags (even after a template is applied)
-- **Zettelkasten**: Add creation date, ID, and knowledge type
-- **Content Creation**: Add author, status, and publication metadata
-- **Templates**: Works seamlessly with template plugins (adjust delay if needed)
 
 ## Tips
 
@@ -171,14 +163,24 @@ Notes with `#template` tag won't get auto-properties, but all other notes will.
 ## Compatibility
 
 - **Obsidian**: Requires v0.15.0 or higher
-- **Mobile**: Fully supported on iOS and Android
+- **Mobile**: Supported on iOS and Android
 - **Templates**: Compatible with core templates and community template plugins
-- **Other Plugins**: Works alongside other property/frontmatter plugins
+- **Other Plugins**: Works alongside other property/frontmatter plugins. Note that plugins monitoring frontmatter at creation may cause redundant update triggers or multiple notifications, but internal collision management ensures the final data remains consistent.
 
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Attributions
+
+This plugin was developed by studying and adapting code from several excellent open-source projects:
+
+- **[Obsidian Auto Note Mover](https://github.com/farux/obsidian-auto-note-mover)** by [farux](https://github.com/farux): Inspired the plugin structure, event handling, and exclusion logic.
+- **[Obsidian Multi Properties](https://github.com/technohiker/obsidian-multi-properties)** by [technohiker](https://github.com/technohiker): Provided the core property manipulation and merging logic.
+- **[Obsidian Quick Tagger](https://github.com/Gorkycreator/obsidian-quick-tagger)** by [Gorkycreator](https://github.com/Gorkycreator): Contributed the tag cleaning logic.
+
+For more details, see [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
 
 ## License
 
