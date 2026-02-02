@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-sample-plugin",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Plugin for Obsidian that allow user to add frontmatter properties automatically on create notes (after applying templates).",
 	"main": "main.js",
 	"scripts": {

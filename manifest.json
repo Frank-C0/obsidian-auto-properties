@@ -1,7 +1,7 @@
 {
 	"id": "auto-properties",
 	"name": "Auto Properties",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Automatically add configured frontmatter properties to new notes. Define global properties once and apply them to all new notes",
 	"author": "Frank-C0",
