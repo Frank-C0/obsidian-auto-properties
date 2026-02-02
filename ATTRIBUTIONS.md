@@ -9,7 +9,7 @@ This plugin, **Obsidian Auto Properties**, was developed by studying and adaptin
 - **License**: [MIT](https://github.com/farux/obsidian-auto-note-mover/blob/main/LICENSE)
 - **Usage**:
   - The plugin structure and event handling logic (`handleFileEvent`, `createPropertyHeaders` UI concepts) were inspired by this plugin.
-  - The tag exclusion logic and settings UI patterns were adapted from this codebase.
+  - The folder exclusion logic, tag exclusion logic, and settings UI patterns (including the new Folder Exclusions feature) were adapted from this codebase.
 
 ### [Obsidian Multi Properties](https://github.com/technohiker/obsidian-multi-properties)
 - **Author**: [technohiker](https://github.com/technohiker)

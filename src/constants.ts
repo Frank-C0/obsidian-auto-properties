@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS: AutoPropertiesSettings = {
     properties: [],
     showNotifications: true,
     exclusionRules: [],
+    excludedFolders: [],
+    useRegexForExcludedFolders: false,
     delayAfterCreate: 500
 };
 

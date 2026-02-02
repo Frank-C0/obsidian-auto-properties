@@ -12,7 +12,13 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type AutoPropertiesPlugin from './main';
 import type { GlobalProperty } from './types';
-import { createPropertyHeaders, createPropertyRow, createExclusionHeaders, createExclusionRow } from './ui-components';
+import {
+    createPropertyHeaders,
+    createPropertyRow,
+    createExclusionHeaders,
+    createExclusionRow,
+    createFolderExclusionRow
+} from './ui-components';
 
 export class AutoPropertiesSettingTab extends PluginSettingTab {
     plugin: AutoPropertiesPlugin;
@@ -72,8 +78,6 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
 
         containerEl.createEl('h3', { text: 'Global Properties' });
 
-        // Property headers
-        // Property headers
         containerEl.createEl('div', {
             text: 'Type in a property name, then value. Use the dropdown to choose what type of data you wish to store.',
             cls: 'setting-item-description',
@@ -116,7 +120,32 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
                     this.renderPropertiesList(propertiesContainer);
                 }));
 
-        containerEl.createEl('h3', { text: 'Exclusion Rules' });
+        containerEl.createEl('h3', { text: 'Excluded Folders' });
+        new Setting(containerEl)
+            .setName('Use regular expressions to check for excluded folder')
+            .setDesc('If enabled, you can use regular expressions to match folder paths.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.useRegexForExcludedFolders)
+                .onChange(async (value) => {
+                    this.plugin.settings.useRegexForExcludedFolders = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        const excludedFoldersContainer = containerEl.createDiv('excluded-folders-container');
+        excludedFoldersContainer.style.marginBottom = '20px';
+        this.renderExcludedFoldersList(excludedFoldersContainer);
+
+        new Setting(containerEl)
+            .addButton(button => button
+                .setButtonText('+ Add Excluded Folder')
+                .onClick(async () => {
+                    this.plugin.settings.excludedFolders.push({ folder: '' });
+                    await this.plugin.saveSettings();
+                    this.renderExcludedFoldersList(excludedFoldersContainer);
+                }));
+
+        containerEl.createEl('h3', { text: 'Exclusion Rules (Tags & Properties)' });
         const exclusionDesc = containerEl.createEl('p', { cls: 'setting-item-description' });
         exclusionDesc.innerHTML = 'Notes matching these rules will <strong>not</strong> have auto-properties applied.<br>' +
             '<strong>Tag:</strong> #example or example<br>' +
@@ -250,6 +279,58 @@ export class AutoPropertiesSettingTab extends PluginSettingTab {
                 {
                     canMoveUp: index > 0,
                     canMoveDown: index < this.plugin.settings.exclusionRules.length - 1
+                }
+            );
+        });
+    }
+
+    private renderExcludedFoldersList(container: HTMLElement): void {
+        container.empty();
+
+        if (this.plugin.settings.excludedFolders.length === 0) {
+            container.createEl('p', {
+                text: 'No folders excluded.',
+                cls: 'setting-item-description'
+            });
+            return;
+        }
+
+        this.plugin.settings.excludedFolders.forEach((excluded, index) => {
+            createFolderExclusionRow(
+                container,
+                excluded,
+                {
+                    onFolderChange: async (value) => {
+                        this.plugin.settings.excludedFolders[index].folder = value;
+                        await this.plugin.saveSettings();
+                    },
+                    onMoveUp: async () => {
+                        if (index > 0) {
+                            const temp = this.plugin.settings.excludedFolders[index];
+                            this.plugin.settings.excludedFolders[index] = this.plugin.settings.excludedFolders[index - 1];
+                            this.plugin.settings.excludedFolders[index - 1] = temp;
+                            await this.plugin.saveSettings();
+                            this.renderExcludedFoldersList(container);
+                        }
+                    },
+                    onMoveDown: async () => {
+                        if (index < this.plugin.settings.excludedFolders.length - 1) {
+                            const temp = this.plugin.settings.excludedFolders[index];
+                            this.plugin.settings.excludedFolders[index] = this.plugin.settings.excludedFolders[index + 1];
+                            this.plugin.settings.excludedFolders[index + 1] = temp;
+                            await this.plugin.saveSettings();
+                            this.renderExcludedFoldersList(container);
+                        }
+                    },
+                    onDelete: async () => {
+                        this.plugin.settings.excludedFolders.splice(index, 1);
+                        await this.plugin.saveSettings();
+                        this.renderExcludedFoldersList(container);
+                    }
+                },
+                {
+                    canMoveUp: index > 0,
+                    canMoveDown: index < this.plugin.settings.excludedFolders.length - 1
                 }
             );
         });

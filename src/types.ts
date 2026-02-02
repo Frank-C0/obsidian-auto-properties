@@ -13,6 +13,10 @@ export interface ExclusionRule {
     value: string;
 }
 
+export interface ExcludedFolder {
+    folder: string;
+}
+
 export type PropertyType = PropertyTypes;
 
 export interface AutoPropertiesSettings {
@@ -20,5 +24,7 @@ export interface AutoPropertiesSettings {
     properties: GlobalProperty[];
     showNotifications: boolean;
     exclusionRules: ExclusionRule[];
+    excludedFolders: ExcludedFolder[];
+    useRegexForExcludedFolders: boolean;
     delayAfterCreate: number;
 }

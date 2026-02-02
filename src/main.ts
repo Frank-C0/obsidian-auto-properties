@@ -5,6 +5,7 @@
 // *    Author: farux
 // *    Availability: https://github.com/farux/obsidian-auto-note-mover
 // *    License: MIT
+// *    (Logic for excluded folders and tag checking is based on this plugin)
 // *
 // *    Title: obsidian-multi-properties
 // *    Author: technohiker
@@ -147,9 +148,32 @@ export default class AutoPropertiesPlugin extends Plugin {
 
     /**
      * Checks if a file is excluded based on configuration.
-     * Logic for tag exclusions loosely based on obsidian-auto-note-mover tag checking.
+     * Includes folder exclusion logic from obsidian-auto-note-mover.
      */
     private isExcluded(file: TFile, cache: any): boolean {
+        // Folder exclusion check (from obsidian-auto-note-mover)
+        if (this.settings.excludedFolders.length > 0) {
+            for (const excluded of this.settings.excludedFolders) {
+                if (!excluded.folder) continue;
+
+                const parentPath = file.parent ? file.parent.path : '';
+                if (!this.settings.useRegexForExcludedFolders) {
+                    if (parentPath === normalizePath(excluded.folder)) {
+                        return true;
+                    }
+                } else {
+                    try {
+                        const regex = new RegExp(excluded.folder);
+                        if (regex.test(parentPath)) {
+                            return true;
+                        }
+                    } catch (e) {
+                        // Invalid regex, skip
+                    }
+                }
+            }
+        }
+
         if (!cache || this.settings.exclusionRules.length === 0) return false;
 
         for (const rule of this.settings.exclusionRules) {
