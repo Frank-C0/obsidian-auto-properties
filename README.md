@@ -2,6 +2,10 @@
 
 Automatically add configured frontmatter properties to new notes in Obsidian. Define global properties once and apply them to all new notes, with flexible exclusion rules.
 
+# Demo
+
+https://github.com/user-attachments/assets/37e5c6fc-c61a-476a-9440-7e41e13ea5c1
+
 ## Features
 
 - ✨ **Automatic property addition** - Properties are added when creating or renaming notes
